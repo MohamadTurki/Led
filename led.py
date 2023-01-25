@@ -39,7 +39,7 @@ def database():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     # Create users table if it doesn't exist
-    c.execute('''CREATE TABLE IF NOT EXISTS users (username text, password text, height real, weight real)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS users (username text, password text, height real, weight real, path text, gender text, activity integer)''')
     conn.commit()
 
     user = User()
@@ -97,15 +97,6 @@ def database():
         
 name, password = database()
 
-
-# GET USERNAME AND PASSWORD, CHECK IF IT IS VALID.
-
-
-# def welcome():
-#     user = User()
-#     print("Ok " +  user.username, " + guide_str")
-
-# welcome()
 
 def exec_cmd(cmd):
 
@@ -299,8 +290,8 @@ def fitness():
         import win32com.client as win32
 
         excel = win32.gencache.EnsureDispatch('Excel.Application')
-
-        wb = excel.Workbooks.Open(r'C:\Users\moham\Desktop\SyncStuff\gym\workoutPlan.xlsx')
+        wop = r"C:\Users\moham\Desktop\SyncStuff\gym\workoutPlan.xlsx"
+        wb = excel.Workbooks.Open(f'{wop}')
         excel.Visible = True
     def bmi_calc():    
         try:
