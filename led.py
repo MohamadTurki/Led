@@ -72,6 +72,12 @@ def database():
             print("Ok " +  user.username + ", " + guide_str)
         else:
             print("User is not defined or logged in.")
+    #EDITING / ADDING TABLES AND DELETING RECORDS
+    # c.execute("ALTER TABLE users ADD COLUMN path TEXT")
+    # c.execute("ALTER TABLE users ADD COLUMN gender TEXT")
+    # c.execute("ALTER TABLE users ADD COLUMN activity INTEGER")
+    # c.execute("DELETE FROM users WHERE username = ?", ('led'))
+    # conn.commit()
 
     if user:
         welcome(user)
@@ -123,8 +129,8 @@ def exec_cmd(cmd):
         "calc": ["calculator", "calc","cl"],
         "quit": ["quit", "exit", "byebye"],
         "cls": ["cls", "clear_screen"],
-        "date": ["date"],
-        "weather": ["weather"],
+        "date": ["date", "d"],
+        "weather": ["weather", "wt"],
         "help": ["help"],
         "ytdownloader": ["ytDownloader", "ytdn", "yd"],
         "myPc": ["mypc", "pc"],
@@ -228,6 +234,66 @@ def search_engine():
             os.system(search_cmd)    
 
 def fitness():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    def get_weight_height():
+        c.execute("SELECT weight, height FROM users WHERE username = ? AND password = ? AND weight IS NULL AND height IS NULL", (name, password))
+        results = c.fetchall()
+        if len(results) > 0:
+            weight = float(input("Enter your Weight in kg: "))
+            height = float(input("Enter your Height in cm: "))/100
+            c.execute("UPDATE users SET weight = ?, height = ? WHERE username = ? AND password = ?", (weight, height, name, password))
+        else:
+            c.execute("SELECT weight, height FROM users WHERE username = ? AND password = ?", (name, password))
+            results = c.fetchall()
+            for row in results:
+                weight, height = row
+        conn.commit()
+        return (weight, height)
+    def get_activity():
+        c.execute("SELECT activity FROM users WHERE username = ? AND password = ? AND activity IS NULL", (name, password))
+        results = c.fetchall()
+        if len(results) > 0:
+            print("1.sedentary, 2.moderately active, 3.very active")
+            print("Select a number please.")
+            activity_level = int(input("What is your activity level: "))
+            c.execute("UPDATE users SET activity = ? WHERE username = ? AND password = ?", (activity_level, name, password))
+            # c.execute("INSERT INTO users (activity) VALUES (?)", (activity_level))
+            if activity_level == 1 or activity_level == 2 or activity_level == 3:
+                pass
+            else:
+                os.system("cls")
+                print("Invalid choice!")
+                fitness()
+        else:
+            c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (name, password))
+            results = c.fetchall()
+            for row in results:
+                activity_level = row[6]
+        conn.commit()
+        return activity_level
+    def get_gender(): 
+        c.execute("SELECT gender FROM users WHERE username = ? AND password = ? AND gender IS NULL", (name, password))
+        results = c.fetchall()
+        if len(results) > 0:
+            print("male, female")
+            gender = str(input("What is your Gender: "))
+            # c.execute("INSERT INTO users (gender) VALUES (?)", (gender))
+            if gender == "male" or gender == "female":
+                pass
+            else:
+                os.system("cls")
+                print("Invalid choice!")
+                fitness()
+            c.execute("UPDATE users SET gender = ? WHERE username = ? AND password = ?", (gender, name, password))
+        else:
+            c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (name, password))
+            results = c.fetchall()
+            for row in results:
+                gender = row[5]
+        conn.commit()
+        return gender
+    
     
     def myPlan():
         import win32com.client as win32
@@ -238,71 +304,44 @@ def fitness():
         excel.Visible = True
     def bmi_calc():    
         try:
-            conn = sqlite3.connect(DB_NAME)
-            c = conn.cursor()
-            c.execute("SELECT weight, height FROM users WHERE username = ? AND password = ? AND weight IS NULL AND height IS NULL", (name, password))
-            results = c.fetchall()
-            if len(results) > 0:
-                weight = float(input("Enter your Weight in kg: "))
-                height = float(input("Enter your Height in cm: "))/100
-                c.execute("UPDATE users SET weight = ?, height = ? WHERE username = ? AND password = ?", (weight, height, name, password))
-                print(weight/height**2)
-            else:
-                c.execute("SELECT weight, height FROM users WHERE username = ? AND password = ?", (name, password))
-                results = c.fetchall()
-                for row in results:
-                    weight, height = row
-                    print(weight/height**2)
-            
-            conn.commit()
-            conn.close()
+            weight, height = get_weight_height()
+            bmi = weight/height**2
+            print(bmi)
         except:
             print("Invalid Value")
             fitness()
     def protein_calc():
+        # try:
+        activity_level = get_activity()
+        weight_kg, height = get_weight_height()
+        gender = get_gender()
         
-        print("1.sedentary, 2.moderately active, 3.very active")
-        print("Select a number please.")
-        try:
-            activity_level = str(input("What is your activity level: "))
-            if activity_level == "1" or activity_level == "2" or activity_level == "3":
-                pass
-            else:
-                os.system("cls")
-                print("Invalid choice!")
-                fitness()
-            weight_kg = float(input("Enter your Weight in kg: "))
-            height = float(input("Enter your Height in cm: "))/100
-            bmi = weight_kg/height**2
-            
-            # Determine protein intake based on gender, activity level, and BMI
-            print("male, female")
-            gender = str(input("What is your Gender: "))
-        except:
-            os.system("cls")
-            print("Invalid Syntax!")
-            fitness()
+        # except:
+            # print("Invalid Syntax!")
+            # fitness()
+        # Determine protein intake based on gender, activity level, and BMI
         if gender == "male":
-            if activity_level == "1":
+            if activity_level == 1:
                 protein_intake = weight_kg * 0.8
-            elif activity_level == "2":
+            elif activity_level == 2:
                 protein_intake = weight_kg * 1
-            elif activity_level == "3":
+            elif activity_level == 3:
                 protein_intake = weight_kg * 1.2
             else:
                 protein_intake = "Invalid activity level"
         elif gender == "female":
-            if activity_level == "1":
+            if activity_level == 1:
                 protein_intake = weight_kg * 0.6
-            elif activity_level == "2":
+            elif activity_level == 2:
                 protein_intake = weight_kg * 0.8
-            elif activity_level == "3":
+            elif activity_level == 3:
                 protein_intake = weight_kg * 1
             else:
                 protein_intake = "Invalid activity level"
         else:
             os.system("cls")
             print("Invalid Gender")
+            print(gender)
             fitness()
         print("The number of grams of protein you should get is " + str(protein_intake))
         fitness()
