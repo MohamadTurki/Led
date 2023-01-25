@@ -284,14 +284,35 @@ def fitness():
                 gender = row[5]
         conn.commit()
         return gender
-    
+    def get_path(): 
+        c.execute("SELECT path FROM users WHERE username = ? AND password = ? AND path IS NULL", (name, password))
+        results = c.fetchall()
+        if len(results) > 0:
+            # IF EMPTY
+            path = str(input("What is your xlsx file path: "))
+            # c.execute("INSERT INTO users (gender) VALUES (?)", (gender))
+            if os.path.isfile(path):
+                pass
+            else:
+                os.system("cls")
+                print("Invalid choice!")
+                fitness()
+            c.execute("UPDATE users SET path = ? WHERE username = ? AND password = ?", (path, name, password))
+        # IF NOT EMPTY
+        else:
+            c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (name, password))
+            results = c.fetchall()
+            for row in results:
+                path = row[4]
+        conn.commit()
+        return path
     
     def myPlan():
         import win32com.client as win32
-
         excel = win32.gencache.EnsureDispatch('Excel.Application')
-        wop = r"C:\Users\moham\Desktop\SyncStuff\gym\workoutPlan.xlsx"
-        wb = excel.Workbooks.Open(f'{wop}')
+        path = get_path()
+        wop = r"{}".format(path)
+        excel.Workbooks.Open(f'{wop}')
         excel.Visible = True
     def bmi_calc():    
         try:
