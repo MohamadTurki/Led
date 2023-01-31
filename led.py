@@ -324,7 +324,7 @@ def speak():
 
                 print("Did you say: ",MyText)
                 if MyText == "show me the weather":
-                    speak_text = "Ok! {}".format(name)
+                    speak_text = "Ok!"
                     SpeakText(speak_text)
                     weather()
                 elif MyText == "show me the date":
