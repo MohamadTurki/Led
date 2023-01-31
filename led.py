@@ -125,7 +125,7 @@ def exec_cmd(cmd):
         "date": date,
         "weather": weather,
         "help": help,
-        "ytdownloader": ytdownloader,
+        # "ytdownloader": ytdownloader,
         "mypc": mypc,
         "cmd": cmd_func,
         "guessing_game": guessing_game,
@@ -143,7 +143,7 @@ def exec_cmd(cmd):
         "date": ["date", "d"],
         "weather": ["weather", "wt"],
         "help": ["help"],
-        "ytdownloader": ["ytDownloader", "ytdn", "yd"],
+        # "ytdownloader": ["ytDownloader", "ytdn", "yd"],
         "myPc": ["mypc", "pc"],
         "cmd": ["cmd", "command", "c"],
         "guessing_game": ["guessinggame", "guessingGame", "gg"],
@@ -330,7 +330,7 @@ def speak():
                 elif MyText == "show me the date":
                     SpeakText(datetime.datetime.now().date())
                 elif MyText == "hello led":
-                    speak_text = "hello {}".format(name)
+                    speak_text = "hello User"
                     SpeakText(speak_text)
                     
                 
@@ -511,25 +511,25 @@ def fitness():
         elif(usr_cmd == "myPlan" or usr_cmd == "mp" or usr_cmd == "myplan"):
             myPlan()
 
-def ytdownloader():
+# def ytdownloader():
 
-    url = str(input("Enter th URL: "))
-    my_video = YouTube(url)
+#     url = str(input("Enter th URL: "))
+#     my_video = YouTube(url)
 
-    print("*********************VIDEO TITLE************************")
-    print(my_video.title)
+#     print("*********************VIDEO TITLE************************")
+#     print(my_video.title)
 
-    print("********************THUMBNAIL IMAGE***********************")
-    print(my_video.thumbnail_url)
+#     print("********************THUMBNAIL IMAGE***********************")
+#     print(my_video.thumbnail_url)
 
-    #set stream resolution
-    my_video = my_video.streams.get_highest_resolution()
+#     #set stream resolution
+#     my_video = my_video.streams.get_highest_resolution()
 
-    #or
-    #my_video = my_video.streams.first()
+#     #or
+#     #my_video = my_video.streams.first()
 
-    #Download video
-    my_video.download()
+#     #Download video
+#     my_video.download()
 
 def mypc():
     print("Type one of the following commands: restart, hibernate, shutdown.")
