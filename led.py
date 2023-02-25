@@ -541,7 +541,7 @@ def fitness():
             protein_calc()
         elif(usr_cmd == "myPlan" or usr_cmd == "mp" or usr_cmd == "myplan"):
             myPlan()
-asd
+
 # def ytdownloader():
 
 #     url = str(input("Enter th URL: "))
