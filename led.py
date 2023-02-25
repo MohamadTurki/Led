@@ -6,14 +6,19 @@ import random
 import sqlite3
 import re
 from typing import * 
+from pprint import pprint
+from prettytable import PrettyTable
 from enum import Enum
 # from pytube import YouTube
 DB_NAME = "users.db"
-guide_str = "Type one of the following (calc, quit, cls, cmd, date, edit_data, myPc, weather, ytDownloader, guessingGame, searchEngine, fitness, help)"
 conn = sqlite3.connect(DB_NAME)
 c = conn.cursor()
+def migrate():
+    # Create users table if it doesn't exist
+    c.execute('''CREATE TABLE IF NOT EXISTS users (username text, password text, height real, weight real, path text, gender text, activity integer, is_admin boolean)''')
+    conn.commit()
+migrate()
 c.execute("DELETE FROM users WHERE username = ?", ("unknown_user",))
-
 
 def input_choice(prompt, choices:List):
     res = input(prompt)
@@ -57,12 +62,6 @@ def login_or_register():
 
 
 # print("                                               You are signed anonymously")
-
-def migrate():
-    # Create users table if it doesn't exist
-    c.execute('''CREATE TABLE IF NOT EXISTS users (username text, password text, height real, weight real, path text, gender text, activity integer)''')
-    conn.commit()
-migrate()
 
 unknown_id = None
 
@@ -120,7 +119,7 @@ elif user_selection == "1":
     else:
         print("Logged in successfully!")
 
-print("Ok " +  username + ", " + guide_str)
+
 
 def get_user_id():
     if unknown_id != None:
@@ -132,7 +131,6 @@ def get_user_id():
         if user[0] is not None:
             id = user[0]
     return id
-
 
 user_id = get_user_id()
 
@@ -156,7 +154,6 @@ def exec_cmd(cmd):
         "update_data": update_data,
         "print_data": print_data,
         "print_aliases": print_aliases,
-
     }
 
     aliases = {
@@ -177,7 +174,11 @@ def exec_cmd(cmd):
         "print_data": ["print_data", "pd"],
         "print_aliases": ["print_aliases", "pa"],
     }
-
+    
+    is_admin = check_if_admin()
+    if is_admin:
+        aliases["admin_panel"] = "admin_panel", "ap"
+        cmds["admin_panel"] = admin_panel
 
     for key, val in aliases.items():
         if cmd in val:
@@ -193,14 +194,17 @@ def get_name(in_txt):
 
 user_acc_deleted = False
 def main():
+    is_admin = check_if_admin()
+    guide_str = "Type one of the following (calc, quit, cls, cmd, date, edit_data, myPc, weather, ytDownloader, guessingGame, searchEngine, fitness, help)"
+    if is_admin:
+        guide_str = "Type one of the following (calc, quit, cls, cmd, date, edit_data, myPc, weather, ytDownloader, guessingGame, searchEngine, fitness, help, adminPanel)"
+    print("Ok " +  username + ", " + guide_str)
     try:
         while not user_acc_deleted:
             cmd = input("Led: ")
             exec_cmd(cmd)
     except KeyboardInterrupt:
         print("\nExiting program...")
-
-
 
 def update_data():
     # try:
@@ -542,12 +546,70 @@ def fitness():
         elif(usr_cmd == "myPlan" or usr_cmd == "mp" or usr_cmd == "myplan"):
             myPlan()
 
+def check_if_admin():
+    c.execute("SELECT is_admin FROM users WHERE rowid = ?", (user_id,))
+    check_admin = c.fetchone()[0]
+    if check_admin == 1:
+        is_admin = True
+    else:
+        c.execute("SELECT is_admin FROM users")
+        admin_users = c.fetchall()
+        for i in admin_users:
+            if i[0] != 1:
+                c.execute("UPDATE users SET is_admin = ? WHERE rowid = ?", (True, user_id))
+                conn.commit()
+                is_admin = True
+    return is_admin
+
+          
+def admin_panel():
+    # try:
+        while True:
+            print("1. List all users")
+            admin_input = str(input("> "))
+            if admin_input == "1":
+                c.execute("SELECT * FROM users")
+                users = c.fetchall()
+                c.execute("PRAGMA table_info(users)")
+                col_names = [row[1] for row in c.fetchall()]
+                # create a PrettyTable instance with the column names
+                table = PrettyTable(col_names)
+
+                # add rows to the table
+                for user in users:
+                    table.add_row(user)
+
+                # print the table
+                print(table)
+            if admin_input == "led":
+                main()
+                # rows = c.fetchall()
+                # for row in rows:
+                #     sections.append("|" + row[1] + "|")
+                # print(" | ".join(sections))  # print column names separated by |
+                # c.execute("SELECT * FROM users")
+                # users = c.fetchall()
+                # for row in users:
+                #     print(f"{row[0]} | {row[1]} | {row[2]} | {row[3]} | {row[4]} | {row[5]} | {row[6]} | {row[7]}")
+
+                    
+    # except:
+    #     print("Invalid input!")
+        
+    # c.execute("UPDATE users SET is_admin = ? WHERE rowid = ?", (True, user_id))
+    # conn.commit()
+    # is_admin = True
+    # for row, i in enumadmin_users:
+    #     if row == True:
+
+
 # def ytdownloader():
 #     url = str(input("Enter th URL: "))
 #     my_video = YouTube(url)
 
 #     print("*********************VIDEO TITLE************************")
 #     print(my_video.title)
+
 
 #     print("********************THUMBNAIL IMAGE***********************")
 #     print(my_video.thumbnail_url)
@@ -568,12 +630,12 @@ def print_data():
         c.execute("SELECT * FROM users WHERE rowid = ?", (user_id,))
     data = c.fetchall()
     for row in data:
-        print(f"Username: {row[1]}")
-        print(f"Password: {row[2]}")
-        print(f"Height: {row[3]}")
-        print(f"Weight: {row[4]}")
-        print(f"Path: {row[5]}")
-        print(f"Gender: {row[6]}")
+        print(f"Username: {row[0]}")
+        print(f"Password: {row[1]}")
+        print(f"Height: {row[2]}")
+        print(f"Weight: {row[3]}")
+        print(f"Path: {row[4]}")
+        print(f"Gender: {row[5]}")
 
 def print_aliases():
     print("""
