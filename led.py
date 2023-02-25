@@ -8,6 +8,12 @@ import re
 from typing import * 
 from enum import Enum
 # from pytube import YouTube
+DB_NAME = "users.db"
+guide_str = "Type one of the following (calc, quit, cls, cmd, date, edit_data, myPc, weather, ytDownloader, guessingGame, searchEngine, fitness, help)"
+conn = sqlite3.connect(DB_NAME)
+c = conn.cursor()
+c.execute("DELETE FROM users WHERE username = ?", ("unknown_user",))
+
 
 def input_choice(prompt, choices:List):
     res = input(prompt)
@@ -32,31 +38,25 @@ class LERR(Enum):
     INVALID_USERNAME = 5
 
 def get_credentials():
-    username = input_valid("What's your name:", r"[A-Za-z]+") 
+    username = input_valid("What's your name: ", r"[A-Za-z]+") 
     while not username:
         print("Invalid name, please enter a valid name.")
         username = input_valid("What's your name: ", r"[A-Za-z]+")
     password = input("Enter your password: ")
     return (username, password)
 
-
 def login_or_register():
     print("Hello my name is led")
-    print("1. Login, 2. Register")
+    print("1. Login, 2. Register, 3. Register as a guest")
     user_selection = input("Select one: ")
-    if user_selection in ["1", "2"]:
+    if user_selection in ["1", "2", "3"]:
         return user_selection
     else:
         print("Invalid Choice")
         sys.exit()
 
-DB_NAME = "users.db"
-curr_user_id = None
-user_is_logged_in = False
-guide_str = "Type one of the following (calc, quit, cls, cmd, date, edit_data, myPc, weather, ytDownloader, guessingGame, searchEngine, fitness, help)"
 
-conn = sqlite3.connect(DB_NAME)
-c = conn.cursor()
+# print("                                               You are signed anonymously")
 
 def migrate():
     # Create users table if it doesn't exist
@@ -64,8 +64,26 @@ def migrate():
     conn.commit()
 migrate()
 
+unknown_id = None
+
+def unknown_user():
+    username = "unknown_user"
+    c.execute("INSERT INTO users (username) VALUES (?)", (username,))
+    conn.commit()
+    c.execute("SELECT rowid FROM users WHERE username = ?", (username,))
+    row = c.fetchone()
+    if row != None:
+        unknown_id = row[0]
+        return unknown_id
+
+
 user_selection = login_or_register()
-username, password = get_credentials()
+if user_selection == "3":
+    unknown_id = unknown_user()
+    c.execute("SELECT * FROM users WHERE rowid = ?", (unknown_id,))
+    username = c.fetchone()[0]
+elif unknown_id == None:
+    username, password = get_credentials()
 
 def user_register(username, password):
     # Check if user already exists
@@ -105,11 +123,14 @@ elif user_selection == "1":
 print("Ok " +  username + ", " + guide_str)
 
 def get_user_id():
-    c.execute("SELECT rowid FROM users WHERE username = ? AND password = ?", (username, password))
-    user = c.fetchone()
-    id = None
-    if user[0] is not None:
-        id = user[0]
+    if unknown_id != None:
+        id = unknown_id
+    else:
+        c.execute("SELECT rowid FROM users WHERE username = ? AND password = ?", (username, password))
+        user = c.fetchone()
+        id = None
+        if user[0] is not None:
+            id = user[0]
     return id
 
 
@@ -133,6 +154,8 @@ def exec_cmd(cmd):
         "fitness": fitness,
         "speak": speak,
         "update_data": update_data,
+        "print_data": print_data,
+        "print_aliases": print_aliases,
 
     }
 
@@ -151,6 +174,8 @@ def exec_cmd(cmd):
         "search_engine": ["searchEngine","SearchEngine","se"],
         "speak": ["speak", "HeyLed"],
         "update_data": ["update_data", "updatedata", "updateData", "edit_data", "editdata", "editData", "up", "ed"],
+        "print_data": ["print_data", "pd"],
+        "print_aliases": ["print_aliases", "pa"],
     }
 
 
@@ -166,28 +191,32 @@ def get_name(in_txt):
         username = input(in_txt)
     return str(username)
 
+user_acc_deleted = False
 def main():
     try:
-        while True:
+        while not user_acc_deleted:
             cmd = input("Led: ")
             exec_cmd(cmd)
     except KeyboardInterrupt:
         print("\nExiting program...")
 
+
+
 def update_data():
-    try:
-        edited_data_txt = "1. Name, 2. Password, 2. Weight, 3. Height, 4. Path, 5. Gender, 6. Activity level, 7. delete_account"
-        print(edited_data_txt)
-        print("Write \"led\" to go back.")
+    # try:
         while True:
-            user_selection = input_choice("Edit: ", ["led","cls","1","2","3","4","5","6","7"])
+            edited_data_txt = "1. Name, 2. Password, 2. Weight, 3. Height, 4. Path, 5. Gender, 6. Activity level, 7. delete_account"
+            print(edited_data_txt)
+            print("Write \"led\" to go back.")
+            user_selection = input_choice("Edit: ",["led","cls","1","2","3","4","5","6","7"])
             if(user_selection == "led"):
                 main()
             elif(user_selection == "cls"):
                 clear_screen()
                 print(edited_data_txt)
-            elif(user_selection == "1"):
+            elif(user_selection == "1"):   
                 new_username = get_name("Enter your new name: ")
+                c.execute("SELECT username FROM users WHERE rowid = ?", (user_id))
                 c.execute("UPDATE users SET username = ? WHERE rowid = ?", (new_username, user_id))
                 print("Username has just changed succesfully!")
             elif(user_selection == "2"):
@@ -214,11 +243,12 @@ def update_data():
                 print("Activity level has just changed succesfully!")
             elif(user_selection == "7"):
                 print("Are you sure you want to delete this account?")
-                answer = input("Yes/No: ")
+                answer = input_choice("Yes/No: ", ["Yes", "No"])
                 if answer == "Yes":
-                    c.execute("DELETE FROM users WHERE rowid = ?", (user_id,))
-                    conn.commit()
-                    print("User deleted succefully!")           
+                        c.execute("DELETE FROM users WHERE rowid = ?", (user_id,))
+                        conn.commit()
+                        print("User deleted successfully!")
+                        unknown_user()
                 elif answer == "No":
                     clear_screen()
                     print("Ok then!")
@@ -229,8 +259,8 @@ def update_data():
                     print(guide_str)
                     main()
             conn.commit()
-    except:
-        print("Invalid Error!")
+    # except:
+    #     print("Invalid Error!")
 
 def cmd_func():
     try:
@@ -241,7 +271,7 @@ def cmd_func():
                 main()
             os.system(usr_cmd)
     except KeyboardInterrupt:
-        print("Exiting program...")
+        print("Exiting the program...")
 
 def guessing_game():
     random_num = random.randint(1, 10)
@@ -332,8 +362,6 @@ def speak():
                 elif MyText == "hello led":
                     speak_text = "hello User"
                     SpeakText(speak_text)
-                    
-                
         except sr.RequestError as e:
             print("Could not request results; {0}".format(e))
             
@@ -350,6 +378,9 @@ def clear_screen():
     os.system("cls")
 
 def byebye():
+    if unknown_id is not None:
+        c.execute("DELETE FROM users WHERE rowid = ?", (unknown_id,))
+        conn.commit()
     clear_screen()
     print("Bye Bye!")
     sys.exit()
@@ -379,7 +410,7 @@ def fitness():
             height = float(input("Enter your Height in cm: "))/100
             c.execute("UPDATE users SET weight = ?, height = ? WHERE rowid = ?", (weight, height, user_id))
         else:
-            c.execute("SELECT weight, height FROM users WHERE rowid = ?", (user_id))
+            c.execute("SELECT weight, height FROM users WHERE rowid = ?", (user_id,))
             results = c.fetchall()
             for row in results:
                 weight, height = row
@@ -530,6 +561,40 @@ def fitness():
 
 #     #Download video
 #     my_video.download()
+
+def print_data():
+    if unknown_id is not None:
+        c.execute("SELECT * FROM users WHERE rowid = ?", (unknown_id,))
+    else:
+        c.execute("SELECT * FROM users WHERE rowid = ?", (user_id,))
+    data = c.fetchall()
+    for row in data:
+        print(f"Username: {row[1]}")
+        print(f"Password: {row[2]}")
+        print(f"Height: {row[3]}")
+        print(f"Weight: {row[4]}")
+        print(f"Path: {row[5]}")
+        print(f"Gender: {row[6]}")
+
+def print_aliases():
+    print("""
+    calc: [calculator, calc,cl]
+    quit: [quit, exit, byebye]
+    cls: [cls, clear_screen]
+    date: [date, d]
+    weather: [weather, wt]
+    help: [help]
+    # ytdownloader: [ytDownloader, ytdn, yd]
+    myPc: [mypc, pc]
+    cmd: [cmd, command, c]
+    guessing_game: [guessinggame, guessingGame, gg]
+    fitness: [fitness, gym, ft]
+    search_engine: [searchEngine,SearchEngine,se]
+    speak: [speak, HeyLed]
+    update_data: [update_data, updatedata, updateData, edit_data, editdata, editData, up, ed]
+    print_data: [print_data, pd]
+    print_aliases: [print_aliase, pa]
+    """)
 
 def mypc():
     print("Type one of the following commands: restart, hibernate, shutdown.")
