@@ -19,6 +19,7 @@ def migrate():
     conn.commit()
 migrate()
 c.execute("DELETE FROM users WHERE username = ?", ("unknown_user",))
+conn.commit()
 
 def input_choice(prompt, choices:List):
     res = input(prompt)
@@ -61,7 +62,7 @@ def login_or_register():
         sys.exit()
 
 
-# print("                                               You are signed anonymously")
+
 
 unknown_id = None
 
@@ -220,7 +221,7 @@ def update_data():
                 print(edited_data_txt)
             elif(user_selection == "1"):   
                 new_username = get_name("Enter your new name: ")
-                c.execute("SELECT username FROM users WHERE rowid = ?", (user_id))
+                c.execute("SELECT username FROM users WHERE rowid = ?", (user_id,))
                 c.execute("UPDATE users SET username = ? WHERE rowid = ?", (new_username, user_id))
                 print("Username has just changed succesfully!")
             elif(user_selection == "2"):
@@ -549,23 +550,30 @@ def fitness():
 def check_if_admin():
     c.execute("SELECT is_admin FROM users WHERE rowid = ?", (user_id,))
     check_admin = c.fetchone()[0]
-    if check_admin == 1:
+    if check_admin == True:
         is_admin = True
+        return is_admin
     else:
         c.execute("SELECT is_admin FROM users")
-        admin_users = c.fetchall()
+        admin_column = c.fetchall()
+        admin_users = []
+        for tup in admin_column:
+            for item in tup: 
+                admin_users.append(item)
         for i in admin_users:
-            if i[0] != 1:
+            if i == True:
+                is_admin = False
+                return is_admin
+            else:
                 c.execute("UPDATE users SET is_admin = ? WHERE rowid = ?", (True, user_id))
                 conn.commit()
                 is_admin = True
-    return is_admin
+                return is_admin
 
-          
 def admin_panel():
     # try:
         while True:
-            print("1. List all users")
+            print("1. List all users, 2. Delete all users")
             admin_input = str(input("> "))
             if admin_input == "1":
                 c.execute("SELECT * FROM users")
@@ -574,13 +582,15 @@ def admin_panel():
                 col_names = [row[1] for row in c.fetchall()]
                 # create a PrettyTable instance with the column names
                 table = PrettyTable(col_names)
-
                 # add rows to the table
                 for user in users:
                     table.add_row(user)
-
                 # print the table
                 print(table)
+            # elif admin_input == "2":
+            #     c.execute("DELETE")
+                
+                
             if admin_input == "led":
                 main()
                 # rows = c.fetchall()
