@@ -5,6 +5,7 @@ import time
 import random
 import sqlite3
 import re
+import subprocess
 from typing import * 
 from pprint import pprint
 from prettytable import PrettyTable
@@ -21,12 +22,20 @@ migrate()
 c.execute("DELETE FROM users WHERE username = ?", ("unknown_user",))
 conn.commit()
 
-def input_choice(prompt, choices:List):
-    res = input(prompt)
-    if res in choices:
-        return res
-    else:
-        return None
+def input_choice(prompt, choices:List, desc:str):
+    # DO JOB
+    # print(prompt)
+    # choices.insert(0,"gum")
+    # result = subprocess.run(choices, stdout=subprocess.PIPE, text=True)
+    # return result.stdout.strip()
+    print(desc)
+    while True:
+        res = input(prompt)
+        if res in choices:
+            return res
+        else:
+            print("Invalid Choice!")
+        print(desc)
     
 def input_valid(prompt, regex):
     res = input(prompt)
@@ -146,7 +155,7 @@ def exec_cmd(cmd):
         "weather": weather,
         "help": help,
         # "ytdownloader": ytdownloader,
-        "mypc": mypc,
+        "myPc": mypc,
         "cmd": cmd_func,
         "guessing_game": guessing_game,
         "search_engine": search_engine,
@@ -195,6 +204,7 @@ def get_name(in_txt):
 
 user_acc_deleted = False
 def main():
+    global guide_str
     is_admin = check_if_admin()
     guide_str = "Type one of the following (calc, quit, cls, cmd, date, edit_data, myPc, weather, ytDownloader, guessingGame, searchEngine, fitness, help)"
     if is_admin:
@@ -208,12 +218,11 @@ def main():
         print("\nExiting program...")
 
 def update_data():
-    # try:
+    try:
         while True:
-            edited_data_txt = "1. Name, 2. Password, 2. Weight, 3. Height, 4. Path, 5. Gender, 6. Activity level, 7. delete_account"
-            print(edited_data_txt)
+            edited_data_txt = "1. Name, 2. Password, 3. Weight, 4. Height, 5. Path, 6. Gender, 7. Activity level, 8. delete_account"
             print("Write \"led\" to go back.")
-            user_selection = input_choice("Edit: ",["led","cls","1","2","3","4","5","6","7"])
+            user_selection = input_choice("Edit: ",["led","cls","1","2","3","4","5","6","7","8"], edited_data_txt)
             if(user_selection == "led"):
                 main()
             elif(user_selection == "cls"):
@@ -229,24 +238,31 @@ def update_data():
                 c.execute("UPDATE users SET password = ? WHERE rowid = ?", (new_password, user_id))
                 print("Password has just changed succesfully!")
             elif(user_selection == "3"):
-                new_weight = input("Enter your new weight (kg): ")
+                new_weight = float(input("Enter your new weight (kg): "))
                 c.execute("UPDATE users SET weight = ? WHERE rowid = ?", (new_weight, user_id))
                 print("Weight has just changed succesfully!")
             elif(user_selection == "4"):
-                new_height = input("Enter your new height (cm): ")
+                new_height = float(input("Enter your new height (cm): "))
                 c.execute("UPDATE users SET height = ? WHERE rowid = ?", (new_height, user_id))
                 print("Height has just changed succesfully!")  
             elif(user_selection == "5"):
-                new_path = input("Enter your new xlsx path: ")
-                c.execute("UPDATE users SET path = ? WHERE rowid = ?", (new_path, user_id))
-                print("Workout plan path has just changed succesfully!")  
+                new_path = str(input("Enter your new workout xlsx path: "))
+                if os.path.isfile(new_path):
+                    c.execute("UPDATE users SET path = ? WHERE rowid = ?", (new_path, user_id))
+                    print("Workout plan path has just changed succesfully!")
+                else:
+                    print("Invalid choice!")
             elif(user_selection == "6"):
+                new_gender = input_choice("Enter you new gender: ", ["male", "female"], "'male' or 'female'")
+                c.execute("UPDATE users SET gender = ? WHERE rowid = ?", (new_gender, user_id))
+                print("Gender has just changed succesfully!")
+            elif(user_selection == "7"):
                 print("1.sedentary, 2.moderately active, 3.very active")
                 print("Select a number please.")
                 new_activity_lvl = int(input("Enter your new activity level: "))
                 c.execute("UPDATE users SET activity = ? WHERE rowid = ?", (new_activity_lvl, user_id))
                 print("Activity level has just changed succesfully!")
-            elif(user_selection == "7"):
+            elif(user_selection == "8"):
                 print("Are you sure you want to delete this account?")
                 answer = input_choice("Yes/No: ", ["Yes", "No"])
                 if answer == "Yes":
@@ -264,8 +280,8 @@ def update_data():
                     print(guide_str)
                     main()
             conn.commit()
-    # except:
-    #     print("Invalid Error!")
+    except:
+        print("Invalid Error!")
 
 def cmd_func():
     try:
@@ -475,7 +491,7 @@ def fitness():
             else:
                 clear_screen()
                 print("Invalid choice!")
-                fitness()
+                main()
             c.execute("UPDATE users SET path = ? WHERE rowid = ?", (path, user_id))
         # IF NOT EMPTY
         else:
@@ -556,30 +572,36 @@ def check_if_admin():
     else:
         c.execute("SELECT is_admin FROM users")
         admin_column = c.fetchall()
-        admin_users = []
+        users_isAdmin_list = []
+        found_one = False
         for tup in admin_column:
-            for item in tup: 
-                admin_users.append(item)
-        for i in admin_users:
-            if i == True:
-                is_admin = False
-                return is_admin
-            else:
-                c.execute("UPDATE users SET is_admin = ? WHERE rowid = ?", (True, user_id))
-                conn.commit()
-                is_admin = True
-                return is_admin
+            for item in tup:
+                if item == True:
+                    found_one = True
+                    break
+        if found_one == True:
+            is_admin = False
+            return is_admin
+        else:
+            c.execute("UPDATE users SET is_admin = ? WHERE rowid = ?", (True, user_id))
+            conn.commit()
+            is_admin = True
+            return is_admin
 
 def admin_panel():
     # try:
         while True:
             print("1. List all users, 2. Delete all users")
-            admin_input = str(input("> "))
+            admin_input = input_choice("> ", ["1","led"])
+            if admin_input == "led":
+                main()
             if admin_input == "1":
-                c.execute("SELECT * FROM users")
+                # Modify the SELECT statement to include the rowid column
+                c.execute("SELECT rowid, * FROM users")
                 users = c.fetchall()
+                # Add the rowid column name to the col_names list
                 c.execute("PRAGMA table_info(users)")
-                col_names = [row[1] for row in c.fetchall()]
+                col_names = ["rowid"] + [row[1] for row in c.fetchall()]
                 # create a PrettyTable instance with the column names
                 table = PrettyTable(col_names)
                 # add rows to the table
@@ -587,12 +609,19 @@ def admin_panel():
                     table.add_row(user)
                 # print the table
                 print(table)
+                rowids = []
+                c.execute("SELECT rowid FROM users")
+                rows = c.fetchall()
+                for row in rows:
+                    rowids.append(row[0])
+                admin_input = input_choice("Select user id: ", rowids)
+                print("User Selected")
+
             # elif admin_input == "2":
             #     c.execute("DELETE")
                 
                 
-            if admin_input == "led":
-                main()
+
                 # rows = c.fetchall()
                 # for row in rows:
                 #     sections.append("|" + row[1] + "|")
